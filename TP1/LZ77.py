@@ -1,8 +1,8 @@
 # this variable is to enable/disable pritns for debugging
 verbose = False
-def dPrint(*str):
+def dPrint(*string):
   if(verbose):
-    print(str)
+    print(string)
 class LZ77:
   """
   Une implementation de l'algorithme LZ77
@@ -10,7 +10,7 @@ class LZ77:
   MAX_WINDOW_SIZE = 511
   MAX_LOOKAHEAD_SIZE = 63
 
-  def __init__(self, lookaheadBuffer =32, window=20):
+  def __init__(self, lookaheadBuffer =MAX_LOOKAHEAD_SIZE, window=MAX_WINDOW_SIZE):
     self.bufferSize = min(self.MAX_LOOKAHEAD_SIZE, lookaheadBuffer)
     self.windowSize = min(self.MAX_WINDOW_SIZE, window)
 
@@ -55,11 +55,11 @@ class LZ77:
     dIndex = 0
     subDict = dict[dict.find(match):]
     dPrint("dIndex: ",dIndex ," bIndex: ",bIndex," ",subDict[0]," ==? ",buffer[bIndex])
-    while buffer[bIndex] == subDict[dIndex] and bIndex< len(buffer):
+    while bIndex< len(buffer) and buffer[bIndex] == subDict[dIndex] :
       repetitionCounter+=1
       bIndex += 1
       dIndex = (dIndex + 1) % len(subDict)
-      dPrint("dIndex: ",dIndex ," bIndex: ",bIndex," ",dict[dIndex]," ==? ",buffer[bIndex])
+      #dPrint("dIndex: ",dIndex ," bIndex: ",bIndex," ",dict[dIndex]," ==? ",buffer[bIndex])
     dPrint("repetitions:",repetitionCounter)
     return repetitionCounter
 
@@ -81,19 +81,35 @@ class LZ77:
       retval+= nextchar
       dPrint(retval)
     return retval
-        
+  def stringify(self, triplets):
+    """to be able to save triplets in a file without the overhead"""
+    retval = ""
+    for triplet in triplets:
+      for x in triplet:
+        retval+= str(x)+','
+    #remove last comma
+    return retval[:-1]
+  def deStringify(self, string):
+    arr = string.split(',')
+    triplets =[]
+    for x in range (0,len(arr), 3):
+      triplets.append((str(arr[0]),str(arr[1]),arr[2]))
+    return triplets
 
 
 if __name__ == "__main__":
     print("---------------------------------")
-    str = "CBAAAAAAAAAAAAAAAAAAAAABAABAACD"
-    print(str)
+    mystr = "CBAAAAAAAAAAAAAAAAAAAAABAABAACD"
+    print(mystr)
     lz = LZ77(22,6)
-    compressed = lz.compress(str)
+    compressed = lz.compress(mystr)
     print("---------------------------------")
     print("compressed = ",compressed)
     print("---------------------------------")
     decompressed = lz.decompress(compressed)
     print("decompressed = ", decompressed)
-    if decompressed == str:
+    if decompressed == mystr:
       print("HOOOOORAY")
+      chaine = lz.stringify(compressed)
+    print("Stringified : " , chaine)
+    print("Destringified : ", lz.deStringify(chaine))

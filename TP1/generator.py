@@ -1,13 +1,10 @@
 import random
 import string
 class Generator:
-    def __init__(self, size,nchars):
-        self.size=size
+    def __init__(self, nchars):
         self.nchars=nchars
-        self.txt = ""
     def generate(self,length):
+        txt =""
         for x in range (length):
-            self.txt +=random.choice(string.ascii_letters[0:self.nchars])
-    def save(self,path):
-        file = open(path,"w")
-        file.write(self.str)
+            txt +=random.choice(string.ascii_letters[0:self.nchars])
+        return txt
