@@ -1,3 +1,5 @@
 DATA/*
 RLE/*
 LZ77/*
+stats.csv
+__pycache__/*

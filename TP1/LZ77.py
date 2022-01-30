@@ -1,3 +1,6 @@
+from ctypes import sizeof
+from bitarray import bitarray
+from bitarray.util import int2ba, ba2int
 # this variable is to enable/disable pritns for debugging
 verbose = False
 def dPrint(*string):
@@ -7,7 +10,7 @@ class LZ77:
   """
   Une implementation de l'algorithme LZ77
   """
-  MAX_WINDOW_SIZE = 511
+  MAX_WINDOW_SIZE = 127
   MAX_LOOKAHEAD_SIZE = 63
 
   def __init__(self, lookaheadBuffer =MAX_LOOKAHEAD_SIZE, window=MAX_WINDOW_SIZE):
@@ -20,6 +23,7 @@ class LZ77:
     data: Les donnees a compresser
     verbose: faire des print en mi chemin (utile pour le debogage)
     """
+    maxlength=0
     triplets = []
     i=0
     while i < len(data):
@@ -36,6 +40,7 @@ class LZ77:
       if len(match) > 0 :
         length = self.findRepetition(buffer,match, dict)
         triplets.append((dict.find(match),length,data[i+length]))
+        maxlength=max(length,maxlength)
         i+=length+1
       else:
         triplets.append((0,0,data[i]))
@@ -81,22 +86,31 @@ class LZ77:
       retval+= nextchar
       dPrint(retval)
     return retval
-  def stringify(self, triplets):
-    """to be able to save triplets in a file without the overhead"""
-    retval = ""
-    for triplet in triplets:
-      for x in triplet:
-        retval+= str(x)+','
-    #remove last comma
-    return retval[:-1]
-  def deStringify(self, string):
-    arr = string.split(',')
-    triplets =[]
-    for x in range (0,len(arr), 3):
-      triplets.append((str(arr[0]),str(arr[1]),arr[2]))
+  def frombyte(self, ba):
+    """takes a bytearray and return the triplets object"""
+    triplets = []
+    start=0
+    # iterate over the bytearray for each triplets
+    while start < len(ba):
+      index = ba2int(ba[start:start+self.MAX_WINDOW_SIZE.bit_length()])
+      start += self.MAX_WINDOW_SIZE.bit_length()
+      length = ba2int(ba[start:start + self.MAX_LOOKAHEAD_SIZE.bit_length()])
+      start+= self.MAX_LOOKAHEAD_SIZE.bit_length()
+      char = chr(ba2int(ba[start:start+8]))
+      start+=8
+      triplets.append((index,length,char))
     return triplets
-
-
+  def tobyte(self, triplets):
+    """from the triplets returns bytes"""
+    arr = bitarray(endian="big")
+    for triplet in triplets:
+      index  = int2ba(triplet[0],length=self.MAX_WINDOW_SIZE.bit_length())
+      taille = int2ba(triplet[1],length=self.MAX_LOOKAHEAD_SIZE.bit_length())
+      char   = int2ba(ord(triplet[2]),length=8)
+      arr.extend(index)
+      arr.extend(taille)
+      arr.extend(char)
+    return arr.tobytes()
 if __name__ == "__main__":
     print("---------------------------------")
     mystr = "CBAAAAAAAAAAAAAAAAAAAAABAABAACD"
@@ -110,6 +124,8 @@ if __name__ == "__main__":
     print("decompressed = ", decompressed)
     if decompressed == mystr:
       print("HOOOOORAY")
-      chaine = lz.stringify(compressed)
-    print("Stringified : " , chaine)
-    print("Destringified : ", lz.deStringify(chaine))
+    octets = lz.tobyte(compressed)
+    mybytes = bitarray()
+    mybytes.frombytes(octets)
+    print("bytify :: ",octets)
+    print("debyted ::",lz.frombyte(mybytes))
