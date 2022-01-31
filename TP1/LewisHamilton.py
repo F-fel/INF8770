@@ -77,14 +77,18 @@ def getStats():
         size = os.path.getsize(LZ_DIR + '/'+filename)
         filename = filename.replace(".lz77","")
         stats[filename].append(size)
-    with open('stats.csv', 'w') as csv_file:  
+    with open('stats.csv', 'w',newline='') as csv_file:  
         writer = csv.writer(csv_file)
-        writer.writerow(["file name","original value","RLE value","lz77 value"])
+        writer.writerow(["file name","original value","RLE value","LZ77 value","rle ratio", "LZ77 ratio"])
         for key, value in stats.items():
-            writer.writerow([key, value[0],value[1],value[2]])
+            og = value[0]
+            rle=value[1]
+            lz=value[2]
+            writer.writerow([key, og,rle,lz,og/rle,og/lz])
 
 if __name__ == "__main__":
-    generateRandomSamples(31)
+    generateRandomSamples(10)
     generateSimpleSamples()
     compress()
     getStats()
+    print("DONE")
