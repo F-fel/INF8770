@@ -1,2 +1,6 @@
-
-*.pyc
+/TP1/DATA/*
+/TP1/RLE/*
+/TP1/LZ77/*
+/TP1/stats.csv
+/TP1/__pycache__/*
+/TP1/archiedDATA/*
