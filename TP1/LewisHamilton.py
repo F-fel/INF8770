@@ -19,6 +19,11 @@ stats = {}
 compressorRLE = RLE()
 compressorLZ  = LZ77()
 # generate samples with random text and size between MIN_SIZE and max bytes
+def make_clean():
+    for filename in os.listdir(LZ_DIR):
+        os.remove(LZ_DIR+'/'+filename)
+    for filename in os.listdir(RLE_DIR):
+        os.remove(RLE_DIR+'/'+filename)
 def generateRandomSamples(nSamples):
     for x in range(nSamples):
         length = random.randint(MIN_SIZE,MAX)
@@ -80,7 +85,7 @@ def getStats():
 
 
 if __name__ == "__main__":
-
+    make_clean()
     generateRandomSamples(10)
     generateSimpleSamples()
     for filename in os.listdir(DATA_DIR):
