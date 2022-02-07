@@ -1,17 +1,18 @@
 from ctypes import sizeof
 from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
-# this variable is to enable/disable pritns for debugging
-verbose = False
+# this variable is to enable/disable prints for manual quick debugging
+VERBOSE = False
 def dPrint(*string):
-  if(verbose):
+  if(VERBOSE):
     print(string)
 class LZ77:
   """
   Une implementation de l'algorithme LZ77
   """
+  # MAX SIZE OF DICTIONNARY AND BUFFER 
   MAX_WINDOW_SIZE = 127
-  MAX_LOOKAHEAD_SIZE = 63
+  MAX_LOOKAHEAD_SIZE = 63 # ALSO SIZE OF LONGEST POSSIBLE MATCH
 
   def __init__(self, lookaheadBuffer =MAX_LOOKAHEAD_SIZE, window=MAX_WINDOW_SIZE):
     self.bufferSize = min(self.MAX_LOOKAHEAD_SIZE, lookaheadBuffer)
@@ -31,10 +32,9 @@ class LZ77:
       dict = data[i-self.windowSize:i] if i > self.windowSize else data[0:i]
       # definir le buffer
       buffer = data[i:i+self.bufferSize] if i+self.bufferSize < len(data) - 1 else data[i:-1]
-      # debug
+      match = self.findLongestMatch(buffer,dict)
       dPrint(" dict =", dict)
       dPrint("buffer = ", buffer)
-      match = self.findLongestMatch(buffer,dict)
       dPrint("match = ",match) if len(match)>0 else dPrint("N/A")
       # try to extend the match
       if len(match) > 0 :
@@ -48,7 +48,7 @@ class LZ77:
       dPrint(triplets)
     return triplets
   def findLongestMatch(self, buffer, dict):
-    """trouve la plus longue chaine de character qui se trouve dans dict on utilise juste le buffer est pas tout le data"""
+    """trouve la plus longue chaine de character qui se trouve dans dict on utilise juste le buffer et pas tout le data"""
     match = buffer
     while match not in dict and len(match)!= 0:
       match = match[:-1]
@@ -72,11 +72,15 @@ class LZ77:
     retval =""
     for triplet in triplets:
       dPrint(triplet)
-      index ,length,nextchar = triplet[0],triplet[1],triplet[2]
+      #EXTRACT DATA FROM TRIPLETS
+      index ,length, nextchar = triplet[0],triplet[1],triplet[2]
+      # reconstruct dictionnary
       dict = retval[- self.windowSize: ] if self.windowSize < len(retval) else retval
+      # if new char skip the rest
       if (index , length) == (0,0):
         retval += nextchar
         continue
+      #reconstruct string from dictionnary
       tmpIndex =index
       for x in range(length):
         retval+= dict[tmpIndex]
@@ -90,12 +94,19 @@ class LZ77:
     """takes a bytearray and return the triplets object"""
     triplets = []
     start=0
+    index_length = self.MAX_WINDOW_SIZE.bit_length()
+    dPrint("index length", index_length)
+    buffer_length = self.MAX_LOOKAHEAD_SIZE.bit_length()
+    dPrint("index length", buffer_length)
+    dPrint("len(ba) : ", len(ba))
+    while start < (len(ba) - 21):
     # iterate over the bytearray for each triplets
-    while start < len(ba):
-      index = ba2int(ba[start:start+self.MAX_WINDOW_SIZE.bit_length()])
-      start += self.MAX_WINDOW_SIZE.bit_length()
-      length = ba2int(ba[start:start + self.MAX_LOOKAHEAD_SIZE.bit_length()])
-      start+= self.MAX_LOOKAHEAD_SIZE.bit_length()
+      #extract the amount of bits needed for each metric
+      dPrint("start: ",start )
+      index = ba2int(ba[start:start+index_length])
+      start += index_length
+      length = ba2int(ba[start:start + buffer_length])
+      start+= buffer_length
       char = chr(ba2int(ba[start:start+8]))
       start+=8
       triplets.append((index,length,char))
@@ -104,6 +115,7 @@ class LZ77:
     """from the triplets returns bytes"""
     arr = bitarray(endian="big")
     for triplet in triplets:
+      # convert data into a bit array with the correct size
       index  = int2ba(triplet[0],length=self.MAX_WINDOW_SIZE.bit_length())
       taille = int2ba(triplet[1],length=self.MAX_LOOKAHEAD_SIZE.bit_length())
       char   = int2ba(ord(triplet[2]),length=8)
@@ -111,21 +123,26 @@ class LZ77:
       arr.extend(taille)
       arr.extend(char)
     return arr.tobytes()
+
 if __name__ == "__main__":
-    print("---------------------------------")
+    print("------------------------- initial string -----------------------------")
     mystr = "CBAAAAAAAAAAAAAAAAAAAAABAABAACD"
     print(mystr)
     lz = LZ77(22,6)
     compressed = lz.compress(mystr)
-    print("---------------------------------")
+    print("\n--------------compression and decompression results -------------------\n")
     print("compressed = ",compressed)
-    print("---------------------------------")
     decompressed = lz.decompress(compressed)
     print("decompressed = ", decompressed)
-    if decompressed == mystr:
-      print("HOOOOORAY")
+    print("-----------------------------------------------------------------------")
+    print("NO DATA LOST TEST : ", decompressed == mystr)
+    print("\n-------------------RESULTS WITH BIT MANIPULATION-----------------------\n")
     octets = lz.tobyte(compressed)
     mybytes = bitarray()
     mybytes.frombytes(octets)
+    byteresults = lz.frombyte(mybytes)
     print("bytify :: ",octets)
-    print("debyted ::",lz.frombyte(mybytes))
+    print(mybytes)
+    print("debyted ::",byteresults)
+    print("----------------------------------------------------------------------")
+    print("NO DATA LOST TEST AFTER BIT MANIPULATION : ", byteresults == compressed )
